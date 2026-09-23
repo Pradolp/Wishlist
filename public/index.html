@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lista de Desejos</title>
+    <meta name="description" content="Minha lista de desejos pessoal - CRUD com Node.js e SQLite" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%AD%90</text></svg>" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">&#9733;</span>
+          <div>
+            <h1>Lista de Desejos</h1>
+            <p class="muted" id="subtitle">Carregando&hellip;</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-new" type="button">
+          <span aria-hidden="true">+</span> Novo desejo
+        </button>
+      </header>
+
+      <section class="stats" id="stats" aria-label="Resumo da lista"></section>
+
+      <section class="toolbar" aria-label="Filtros">
+        <div class="field field-search">
+          <label class="visually-hidden" for="search">Buscar</label>
+          <input
+            type="search"
+            id="search"
+            placeholder="Buscar por nome, link ou observacao&hellip;"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="field">
+          <label for="filter-priority">Prioridade</label>
+          <select id="filter-priority">
+            <option value="all">Todas</option>
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="filter-purchased">Status</label>
+          <select id="filter-purchased">
+            <option value="all">Todos</option>
+            <option value="pending">A comprar</option>
+            <option value="purchased">Comprados</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="sort">Ordenar por</label>
+          <select id="sort">
+            <option value="recent">Mais recentes</option>
+            <option value="oldest">Mais antigos</option>
+            <option value="priority">Prioridade</option>
+            <option value="name">Nome (A-Z)</option>
+            <option value="price_desc">Maior preco</option>
+            <option value="price_asc">Menor preco</option>
+          </select>
+        </div>
+      </section>
+
+      <main id="main">
+        <ul class="items" id="items"></ul>
+        <div class="empty" id="empty" hidden></div>
+      </main>
+    </div>
+
+    <dialog id="dialog" class="dialog" aria-labelledby="dialog-title">
+      <form id="form" class="form" novalidate>
+        <header class="dialog-head">
+          <h2 id="dialog-title">Novo desejo</h2>
+          <button type="button" class="icon-btn" id="btn-close" aria-label="Fechar">&times;</button>
+        </header>
+
+        <div class="form-errors" id="form-errors" role="alert" hidden></div>
+
+        <div class="field">
+          <label for="f-name">Nome do item *</label>
+          <input id="f-name" name="name" type="text" maxlength="120" required autocomplete="off" placeholder="Ex.: Fone Bluetooth" />
+          <p class="hint error" data-error-for="name" hidden></p>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="f-price">Preco estimado (R$)</label>
+            <input id="f-price" name="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" />
+            <p class="hint error" data-error-for="price" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="f-priority">Prioridade</label>
+            <select id="f-priority" name="priority">
+              <option value="baixa">Baixa</option>
+              <option value="media" selected>Media</option>
+              <option value="alta">Alta</option>
+            </select>
+            <p class="hint error" data-error-for="priority" hidden></p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-link">Link do produto</label>
+          <input id="f-link" name="link" type="text" autocomplete="off" placeholder="https://loja.com/produto" />
+          <p class="hint error" data-error-for="link" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="f-notes">Observacoes</label>
+          <textarea id="f-notes" name="notes" rows="3" maxlength="2000" placeholder="Cor, tamanho, loja onde vi, etc."></textarea>
+          <p class="hint error" data-error-for="notes" hidden></p>
+        </div>
+
+        <label class="switch">
+          <input id="f-purchased" name="purchased" type="checkbox" />
+          <span>Ja comprei este item</span>
+        </label>
+
+        <footer class="dialog-foot">
+          <button type="button" class="btn btn-ghost" id="btn-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-save">Salvar</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
