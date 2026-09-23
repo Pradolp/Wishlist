@@ -5,11 +5,15 @@
  *   node src/server.js            -> sobe em http://localhost:4173 e abre o navegador
  *   node src/server.js --no-open  -> sobe sem abrir o navegador
  *   PORT=8080 node src/server.js  -> muda a porta
+ *
+ * Este modulo pode ser importado: os testes chamam startServer()/stopServer()
+ * para subir a API em uma porta aleatoria (port: 0) sem abrir o navegador.
  */
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { extname, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { DB_PATH, PUBLIC_DIR, db } from './db.js';
 import {
@@ -221,28 +225,81 @@ function openBrowser(target) {
   }
 }
 
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`\n  A porta ${PORT} ja esta em uso.`);
-    console.error(`  Feche o outro programa ou rode:  PORT=4174 npm start\n`);
-    process.exit(1);
-  }
-  throw error;
-});
+/* ------------------------------------------------------------------ *
+ * Ciclo de vida
+ * ------------------------------------------------------------------ */
 
-server.listen(PORT, HOST, () => {
-  const url = `http://localhost:${PORT}`;
-  console.log(`\n  Lista de Desejos rodando em ${url}`);
-  console.log(`  Banco de dados: ${DB_PATH}`);
-  console.log(`  (Ctrl+C para parar)\n`);
-  openBrowser(url);
-});
+/**
+ * Sobe o servidor HTTP e resolve com a URL quando estiver escutando.
+ *
+ * Exportado para os testes: `startServer({ port: 0 })` usa uma porta livre
+ * aleatoria em vez de fixar a 4173, e `open: false` nao abre o navegador.
+ */
+export function startServer({ port = PORT, host = HOST, open = false } = {}) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off('listening', onListening);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`\n  A porta ${port} ja esta em uso.`);
+        console.error(`  Feche o outro programa ou rode:  PORT=${port + 1} npm start\n`);
+        process.exit(1);
+      }
+      reject(error);
+    };
 
-for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => {
+    const onListening = () => {
+      server.off('error', onError);
+      const url = `http://localhost:${server.address().port}`;
+      console.log(`\n  Lista de Desejos rodando em ${url}`);
+      console.log(`  Banco de dados: ${DB_PATH}`);
+      console.log('  (Ctrl+C para parar)\n');
+      if (open) openBrowser(url);
+      resolve(url);
+    };
+
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(port, host);
+  });
+}
+
+/** Fecha o servidor e o banco, liberando os arquivos (usado nos testes). */
+export function stopServer() {
+  return new Promise((resolve) => {
+    if (!server.listening) {
+      db.close();
+      return resolve();
+    }
     server.close(() => {
       db.close();
+      resolve();
+    });
+    // Encerra conexoes keep-alive ociosas para o close() nao ficar pendurado.
+    server.closeIdleConnections?.();
+  });
+}
+
+// Sobe sozinho apenas quando executado direto (`npm start`). Ao ser importado
+// pelos testes, nada acontece ate chamarem startServer().
+const isDirectRun = (() => {
+  if (!process.argv[1]) return false;
+  const entry = resolve(process.argv[1]);
+  const self = fileURLToPath(import.meta.url);
+  return process.platform === 'win32'
+    ? entry.toLowerCase() === self.toLowerCase()
+    : entry === self;
+})();
+
+if (isDirectRun) {
+  startServer({ open: true }).catch((error) => {
+    console.error('[erro ao iniciar]', error);
+    process.exit(1);
+  });
+
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, async () => {
+      await stopServer();
       process.exit(0);
     });
-  });
+  }
 }
