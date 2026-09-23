@@ -5,11 +5,13 @@
   "description": "Lista de desejos pessoal (CRUD completo) com Node.js puro e SQLite embutido",
   "type": "module",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "start:no-open": "node src/server.js --no-open"
+    "start:no-open": "node src/server.js --no-open",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
   }
 }
